@@ -1,0 +1,42 @@
+//
+Skewed
+
+user_item = LOAD '/home/sekharLab/opt/hadoop/data/file/u.user' using PigStorage ('|') AS(user_id:int,age:int,gender:chararray,profile:chararray,zipcode:long);
+
+rating_item = LOAD '/home/ashok/opt/hadoop/data/file/u.data' using PigStorage ('\t') as (user_id:int, movie_id:int, rating:int, timestamp:long);
+
+C = JOIN user_item BY user_id, rating_item BY user_id USING 'skewed';
+
+//
+Replicated Join :
+user_item = LOAD '/home/sekharLab/opt/hadoop/data/file/u.user' using PigStorage ('|') AS(user_id:int,age:int,gender:chararray,profile:chararray,zipcode:long);
+
+rating_item = LOAD '/home/ashok/opt/hadoop/data/file/u.data' using PigStorage ('\t') as (user_id:int, movie_id:int, rating:int, timestamp:long);
+
+item = LOAD '/home/sekharLab/opt/hadoop/data/file/u.item' using PigStorage ('|') AS (movie_id:int, movie_Name:chararray, release_date:chararray, empty:chararray, imdb_url:chararray, unknown:int, Action:int, Adventure:int, Animation:int, Children:int, Comedy:int, Crime:int, Documentary:int, Drama:int, Fantasy:int, Film_Noir:int, Horror:int, Musical:int, Mystery:int, Romance:int, Sci_Fi:int, Thriller:int, War:int, Western:int);
+
+C = JOIN user_item BY user_id, rating_item BY user_id, item BY movie_id USING 'replicated';
+
+//
+Merge Sparse Join
+
+a = load '/home/sekharLab/opt/hadoop/data/file/u.user' using org.apache.pig.piggybank.storage.IndexedStorage('\t', '0');
+b = load '/home/ashok/opt/hadoop/data/file/u.data' using org.apache.pig.piggybank.storage.IndexedStorage('\t', '0');
+c = join a by $0, b by $0 using 'merge-sparse';
+store c into 'results';
+
+// Using Foreach
+user_item = LOAD '/home/sekharLab/opt/hadoop/data/file/u.user' using PigStorage ('|') AS(user_id:int,age:int,gender:chararray,profile:chararray,zipcode:long);
+
+rating_item = LOAD '/home/ashok/opt/hadoop/data/file/u.data' using PigStorage ('\t') as (user_id:int, movie_id:int, rating:int, timestamp:long);
+
+A = JOIN user_item by user_id LEFT OUTER, rating_item by user_id;
+
+B = GROUP A by gender;
+
+C = FOREACH B {
+  LOCS = DISTINCT A.zipcode;
+  GENERATE group, COUNT(LOCS) as location_count;
+};
+
+DUMP C;
